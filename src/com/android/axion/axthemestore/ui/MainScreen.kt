@@ -102,6 +102,7 @@ fun MainScreen(viewModel: ThemeStoreViewModel) {
         composable("installed_components") {
             InstalledComponentsScreen(
                 viewModel = viewModel,
+                storeSection = viewModel.storeSection,
                 onBackClick = { navController.popBackStack() }
             )
         }

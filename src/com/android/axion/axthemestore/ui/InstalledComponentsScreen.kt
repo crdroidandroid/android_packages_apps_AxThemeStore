@@ -37,20 +37,26 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.android.axion.axthemestore.R
+import com.android.axion.axthemestore.data.model.StoreSection
 import com.android.axion.axthemestore.engine.ThemeEngineProxy
 import com.android.axion.axthemestore.viewmodel.ThemeStoreViewModel
 
 @Composable
 fun InstalledComponentsScreen(
     viewModel: ThemeStoreViewModel,
+    storeSection: StoreSection,
     onBackClick: () -> Unit
 ) {
-    val categoryThemes by viewModel.categoryThemesState.collectAsStateWithLifecycle()
+    val allCategoryThemes by viewModel.categoryThemesState.collectAsStateWithLifecycle()
     val iconTheme = remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
         val proxy = ThemeEngineProxy(viewModel.getApplication())
         iconTheme.value = proxy.getIconTheme()
+    }
+
+    val categoryThemes = remember(allCategoryThemes, storeSection) {
+        allCategoryThemes.filterKeys { storeSection.isRelevantCategoryKey(it) }
     }
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()

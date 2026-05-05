@@ -89,4 +89,10 @@
     <string name="clear">Clear</string>
 
     <string name="default_ui_style">Default (Axion)</string>
+
+    <string name="section_title_network_icons">Network Icons</string>
+    <string name="section_title_battery_styles">Battery Styles</string>
+    <string name="section_title_back_gesture">Back Gesture</string>
+    <string name="section_title_charging_animation">Charging Animation</string>
+    <string name="section_title_status_bar_customization">Status Bar Customization</string>
 </resources>

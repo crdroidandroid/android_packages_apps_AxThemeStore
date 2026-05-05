@@ -22,6 +22,7 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.android.axion.axthemestore.data.model.IconPack
+import com.android.axion.axthemestore.data.model.StoreSection
 import com.android.axion.axthemestore.data.model.Theme
 import com.android.axion.axthemestore.data.model.ThemeCategory
 import com.android.axion.axthemestore.data.model.ThemeInstallState
@@ -35,7 +36,11 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.*
 import org.json.JSONArray
 
-class ThemeStoreViewModel(application: Application) : AndroidViewModel(application) {
+
+class ThemeStoreViewModel(
+    application: Application,
+    val storeSection: StoreSection = StoreSection.All,
+) : AndroidViewModel(application) {
     
     companion object {
         private const val TAG = "ThemeStoreViewModel"
@@ -50,7 +55,7 @@ class ThemeStoreViewModel(application: Application) : AndroidViewModel(applicati
     private val themeEngineProxy = ThemeEngineProxy(application)
     private val sharedPrefs = application.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     
-    private val _uiState = MutableStateFlow(ThemeStoreUiState())
+    private val _uiState = MutableStateFlow(ThemeStoreUiState(storeSection = storeSection))
     val uiState: StateFlow<ThemeStoreUiState> = _uiState.asStateFlow()
     
     private val _themeStates = MutableStateFlow<Map<String, ThemeInstallState>>(emptyMap())
@@ -268,6 +273,8 @@ class ThemeStoreViewModel(application: Application) : AndroidViewModel(applicati
         val state = _uiState.value
         var themes = state.themes
         
+        themes = themes.filter { state.storeSection.isRelevantCategoryKey(it.category) }
+
         state.selectedCategory?.let { category ->
             themes = themes.filter { it.category == category }
         }
@@ -846,5 +853,6 @@ data class ThemeStoreUiState(
     val iconPacks: List<IconPack> = emptyList(),
     val currentIconPack: String? = null,
     val themedIconStyle: String = ThemeEngineProxy.Companion.ThemedIconStyle.AXION,
-    val themedIconsEnabled: Boolean = false
+    val themedIconsEnabled: Boolean = false,
+    val storeSection: StoreSection = StoreSection.All,
 )

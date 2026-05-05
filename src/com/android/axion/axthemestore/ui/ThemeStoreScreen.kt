@@ -22,6 +22,7 @@
 
 package com.android.axion.axthemestore.ui
 
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.fadeIn
@@ -57,6 +58,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.android.axion.axthemestore.R
+import com.android.axion.axthemestore.data.model.StoreSection
 import com.android.axion.axthemestore.data.model.Theme
 import com.android.axion.axthemestore.data.model.ThemeCategory
 import com.android.axion.axthemestore.data.model.ThemeInstallState
@@ -418,7 +420,7 @@ private fun BrowseScreen(
             LargeFlexibleTopAppBar(
                 title = {
                     Text(
-                        text = stringResource(R.string.themes),
+                        text = stringResource(browseScreenTitle(uiState.storeSection)),
                         fontWeight = FontWeight.Bold,
                     )
                 },
@@ -445,13 +447,16 @@ private fun BrowseScreen(
         },
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding)) {
+            val sectionFilteredThemes = uiState.themes.filter {
+                uiState.storeSection.isRelevantCategoryKey(it.category)
+            }
             when {
                 uiState.isLoading -> LoadingState()
                 uiState.error != null -> ErrorState(
                     message = uiState.error!!,
                     onRetry = onRefresh,
                 )
-                uiState.themes.isEmpty() -> EmptyState(isSearching = false)
+                sectionFilteredThemes.isEmpty() -> EmptyState(isSearching = false)
                 else -> DashboardContent(
                     uiState = uiState,
                     themeStates = themeStates,
@@ -488,32 +493,30 @@ private fun DashboardContent(
     onThemeClick: (Theme) -> Unit,
     onNavigateToCategory: (String) -> Unit,
 ) {
-    val themesByCategory = remember(uiState.themes) {
-        uiState.themes.groupBy { it.category }
-            .mapValues { (_, list) -> list.sortedBy { it.name.lowercase() } }
+    val sectionFilteredThemes = uiState.themes.filter {
+        uiState.storeSection.isRelevantCategoryKey(it.category)
     }
-    val installedThemes = remember(uiState.themes, themeStates) {
-        uiState.themes.filter { theme ->
-            val s = themeStates[theme.id]
-            s is ThemeInstallState.Installed ||
-                    s is ThemeInstallState.InstalledInactive ||
-                    theme.isLocal
-        }.sortedBy { it.name.lowercase() }
+    val sectionFilteredCategories = uiState.categories.filter {
+        uiState.storeSection.isRelevantCategoryKey(it.id)
     }
-    val featuredThemes = remember(uiState.themes) {
-        uiState.themes.shuffled().take(RAIL_LIMIT)
-    }
-    val categoriesWithThemes = remember(uiState.categories, themesByCategory) {
-        uiState.categories.filter { cat -> (themesByCategory[cat.id] ?: emptyList()).isNotEmpty() }
-    }
+    val themesByCategory = sectionFilteredThemes.groupBy { it.category }
 
+    val installedThemes = sectionFilteredThemes.filter { theme ->
+        val state = themeStates[theme.id]
+        state is ThemeInstallState.Installed ||
+        state is ThemeInstallState.InstalledInactive ||
+        theme.isLocal
+    }.sortedBy { it.name.lowercase() }
+    val featuredThemes = remember(sectionFilteredThemes) {
+        sectionFilteredThemes.shuffled().take(RAIL_LIMIT)
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(vertical = 8.dp),
     ) {
-        if (featuredThemes.isNotEmpty()) {
+        if (uiState.storeSection == StoreSection.All && featuredThemes.isNotEmpty()) {
             FeaturedCarousel(
                 themes = featuredThemes,
                 onThemeClick = onThemeClick,
@@ -530,7 +533,7 @@ private fun DashboardContent(
                 } else null,
             )
         }
-        categoriesWithThemes.forEach { cat ->
+        sectionFilteredCategories.forEach { cat ->
             val catThemes = themesByCategory[cat.id].orEmpty()
             ThemeSection(
                 title = cat.name,
@@ -1173,4 +1176,14 @@ private fun getLocalPreviewResIds(context: android.content.Context, packageName:
     }
     sPreviewIdsCache[packageName] = ids
     return ids
+}
+
+@StringRes
+private fun browseScreenTitle(section: StoreSection): Int = when (section) {
+    StoreSection.All -> R.string.themes
+    StoreSection.NetworkIcons -> R.string.section_title_network_icons
+    StoreSection.BatteryStyles -> R.string.section_title_battery_styles
+    StoreSection.BackGesture -> R.string.section_title_back_gesture
+    StoreSection.ChargingAnimation -> R.string.section_title_charging_animation
+    StoreSection.StatusBarCustomization -> R.string.section_title_status_bar_customization
 }
